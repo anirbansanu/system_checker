@@ -1,41 +1,60 @@
 # filename = system_diagnostics.py
 
 import psutil
-import wmi
 import subprocess
+import wmi
 
 class SystemDiagnostics:
     def __init__(self):
         self.diagnostics = {}
 
     def check_overheating(self):
-        c = wmi.WMI()
-        temperatures = c.Win32_Temperature()
-        if temperatures:
-            temp_list = [temp.CurrentTemperature for temp in temperatures]
-            # Convert temperature from Kelvin to Celsius
-            return [round((temp / 10) - 273.15, 2) for temp in temp_list if temp is not None]
-        return None
+        try:
+            c = wmi.WMI()
+            processors = c.Win32_Processor()
+            if processors:
+                # Get temperature from Win32_Processor
+                temp_list = [proc.LoadPercentage for proc in processors]  # Load percentage as a proxy for temperature
+                return {'Load Percentage': temp_list}
+            return {"Error": "No processor data available."}
+        except Exception as e:
+            return {"Error retrieving temperature": str(e)}
 
     def check_battery(self):
-        c = wmi.WMI()
-        battery_info = c.Win32_Battery()
-        if battery_info:
-            battery = battery_info[0]
-            return {
-                'Charge': battery.EstimatedChargeRemaining,
-                'Status': battery.Status,
-                'Design Capacity': battery.DesignCapacity,
-                'Full Charge Capacity': battery.FullChargeCapacity
-            }
-        return None
+        try:
+            c = wmi.WMI()
+            battery_info = c.Win32_Battery()
+            if battery_info:
+                battery = battery_info[0]
+                return {
+                    'Charge': battery.EstimatedChargeRemaining,
+                    'Status': battery.Status,
+                    'Design Capacity': battery.DesignCapacity if battery.DesignCapacity is not None else 'N/A',
+                    'Full Charge Capacity': battery.FullChargeCapacity if battery.FullChargeCapacity is not None else 'N/A'
+                }
+            return {"Error": "No battery information found."}
+        except Exception as e:
+            return {"Error": str(e)}
 
     def check_hard_drive(self):
         try:
-            result = subprocess.run(['wmic', 'diskdrive', 'get', 'Status'], capture_output=True, text=True)
-            return result.stdout.splitlines()[1:]  # Skip header line
+            result = subprocess.Popen(['wmic', 'diskdrive', 'get', 'DeviceID,Status,Model'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = result.communicate()
+            lines = stdout.decode().strip().split('\n')[1:]  # Skip header
+            hard_drive_info = {}
+            for line in lines:
+                parts = line.split()
+                if len(parts) >= 3:  # Ensure there are enough parts to unpack
+                    device_id = parts[0]
+                    status = parts[1]
+                    model = " ".join(parts[2:])
+                    hard_drive_info[device_id] = {
+                        'Status': status,
+                        'Model': model
+                    }
+            return hard_drive_info or {"Error": "No hard drive information found."}
         except Exception as e:
-            return str(e)
+            return {"Error": str(e)}
 
     def check_ram(self):
         memory_info = psutil.virtual_memory()

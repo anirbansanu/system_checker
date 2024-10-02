@@ -4,6 +4,7 @@ from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, Q
 from PySide2.QtGui import QFont
 from PySide2.QtCore import Qt
 from system_info import SystemInfoFactory
+from system_diagnostics import SystemDiagnostics  # Make sure to import SystemDiagnostics
 
 class SystemInfoGUI(QWidget):
     def __init__(self):
@@ -22,6 +23,12 @@ class SystemInfoGUI(QWidget):
         self.info_button.setStyleSheet("background-color: #61afef; color: white;")
         self.info_button.clicked.connect(self.show_system_info)
 
+        # Button to run diagnostics
+        self.diagnostics_button = QPushButton("Run Diagnostics")
+        self.diagnostics_button.setFont(QFont("Arial", 12))
+        self.diagnostics_button.setStyleSheet("background-color: #61afef; color: white;")
+        self.diagnostics_button.clicked.connect(self.run_diagnostics)
+
         # Text area to display system info
         self.text_area = QTextEdit()
         self.text_area.setFont(QFont("Consolas", 10))
@@ -29,6 +36,7 @@ class SystemInfoGUI(QWidget):
         self.text_area.setReadOnly(True)
         
         self.layout.addWidget(self.info_button)
+        self.layout.addWidget(self.diagnostics_button)
         self.layout.addWidget(self.text_area)
         self.setLayout(self.layout)
 
@@ -38,12 +46,21 @@ class SystemInfoGUI(QWidget):
         formatted_info = self.format_info(info)
         self.text_area.setText(formatted_info)
 
+    def run_diagnostics(self):
+        diagnostics = SystemDiagnostics()
+        diagnostic_results = diagnostics.run_diagnostics()
+        formatted_diagnostics = self.format_info(diagnostic_results)
+        self.text_area.setText(formatted_diagnostics)
+
     def format_info(self, info):
         formatted = ""
         for category, details in info.items():
             formatted += f"{category}:\n"
-            for key, value in details.items():
-                formatted += f"  {key}: {value}\n"
+            if isinstance(details, dict):  # Check if details is a dictionary
+                for key, value in details.items():
+                    formatted += f"  {key}: {value}\n"
+            else:
+                formatted += f"  {details}\n"  # If it's not a dictionary, just add the string
             formatted += "\n"
         return formatted
 
