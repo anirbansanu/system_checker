@@ -59,9 +59,9 @@ class SystemDiagnostics:
     def check_ram(self):
         memory_info = psutil.virtual_memory()
         return {
-            'Total': memory_info.total,
-            'Available': memory_info.available,
-            'Used': memory_info.used,
+            'Total (MB)': round(memory_info.total / (1024 * 1024), 2),  # Convert to MB and round to 2 decimal places
+            'Available (MB)': round(memory_info.available / (1024 * 1024), 2),  # Convert to MB and round to 2 decimal places
+            'Used (MB)': round(memory_info.used / (1024 * 1024), 2),  # Convert to MB and round to 2 decimal places
             'Percentage': memory_info.percent
         }
 
@@ -70,6 +70,8 @@ class SystemDiagnostics:
         return {
             'Bytes Sent': net_io.bytes_sent,
             'Bytes Received': net_io.bytes_recv,
+            'Mega Bytes Sent (MB)': round(net_io.bytes_sent / (1024 * 1024),2),   # Convert to MB
+            'Mega Bytes Received (MB)': round(net_io.bytes_recv / (1024 * 1024),2),   # Convert to MB
             'Packets Sent': net_io.packets_sent,
             'Packets Received': net_io.packets_recv,
             'Errors Sent': net_io.errout,
